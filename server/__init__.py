@@ -12,8 +12,7 @@ async def char_generator(filename):
                 yield char
                 await asyncio.sleep(.001)
 
-def signal_handler():
-    print("\nReceived SIGINT. Cancelling tasks...")
+def exit_signal_handler():
     for task in asyncio.all_tasks():
         task.cancel()
 
@@ -25,7 +24,7 @@ async def main():
         sys.stdout.buffer
     )
 
-    loop.add_signal_handler(signal.SIGINT, signal_handler)
+    loop.add_signal_handler(signal.SIGINT, exit_signal_handler)
 
     try:
         args = sys.argv[1:]
