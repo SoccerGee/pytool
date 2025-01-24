@@ -1,12 +1,20 @@
 import asyncio
 import sys
 import functools
-from pathlib import Path
 import signal
+import os
+
+from pathlib import Path
+from typing import Generator
 
 from .protocols import EchoServerProtocol
 
-async def char_generator(filename):
+'''
+call using:
+    async for char in char_generator('file.txt'):
+        transport.write(char.encode())
+'''
+async def char_generator(filename: str): -> Generator[str, None, None]
     dir = Path(__file__).parent
     with open(dir / filename, 'r') as file:
         for line in file:
@@ -14,6 +22,22 @@ async def char_generator(filename):
                 yield char
                 await asyncio.sleep(.001)
 
+# @TODO: declare new typing for returning a server protocol
+def get_server_protocol():
+    server_var = os.environ.get('SERVER','echo').lower()
+    match server_var:
+        case 'echo':
+            print(f'FOUND {server_var} SERVER')
+            server = EchoServerProtocol.EchoServer
+        case _:
+            print(f'NO SERVER WITH THE TYPE \'{server_var}\' FOUND')
+            print('Running echo server...')
+            server = EchoServerProtocol.EchoServer
+    return server
+
+'''
+close all asyncio tasks
+'''
 def exit_signal_handler():
     for task in asyncio.all_tasks():
         task.cancel()
@@ -30,13 +54,10 @@ async def main():
 
     try:
         server = await loop.create_server(
-                EchoServerProtocol.EchoServer,
+                get_server_protocol(),
                 '127.0.0.1', 8888)
         async with server:
             await server.serve_forever()
-        # args = sys.argv[1:]
-        # async for char in char_generator(args[0]):
-        #     transport.write(char.encode())
     except asyncio.CancelledError:
         print("Exiting...")
     finally:
