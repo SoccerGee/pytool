@@ -4,6 +4,8 @@ import functools
 from pathlib import Path
 import signal
 
+from .protocols import EchoServerProtocol
+
 async def char_generator(filename):
     dir = Path(__file__).parent
     with open(dir / filename, 'r') as file:
@@ -27,9 +29,14 @@ async def main():
     loop.add_signal_handler(signal.SIGINT, exit_signal_handler)
 
     try:
-        args = sys.argv[1:]
-        async for char in char_generator(args[0]):
-            transport.write(char.encode())
+        server = await loop.create_server(
+                EchoServerProtocol.EchoServer,
+                '127.0.0.1', 8888)
+        async with server:
+            await server.serve_forever()
+        # args = sys.argv[1:]
+        # async for char in char_generator(args[0]):
+        #     transport.write(char.encode())
     except asyncio.CancelledError:
         print("Exiting...")
     finally:
